@@ -1,33 +1,52 @@
 package org.example
 
 import kotlinx.coroutines.runBlocking
-import org.example.facade.DownloadRequest
+import org.example.core.util.mb
+import org.example.data.fileDownloader.FileDownloaderImpl
+import org.example.data.service.FixedSizeChunkSplitter
+import org.example.data.service.OkHttpClientAdapter
+import org.example.data.service.ParallelChunkDownloaderImpl
+import org.example.domain.model.DownloadEvent
+import org.example.domain.model.DownloadRequest
+import kotlin.system.exitProcess
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-fun main(args: Array<String>) = runBlocking {
-
+suspend fun main(args: Array<String>) {
     if (args.isEmpty()) {
-        println("[ERROR] No arguments found")
-        println("Example: ./gradlew runDowloader -Pargs=\"http://localhost:8080/test.zip\"")
+        System.err.println("[ERROR] No arguments found")
+        System.err.println("Example: ./gradlew runDownloader -Pargs=\"http://localhost:8080/test.zip\"")
+        exitProcess(1)
     }
-    val fileDownloader = FileDownloader()
-    val url = args[0]
-    val destination = "C:\\Users\\david\\Documents\\docker-shared\\downloaded-file.txt"
-    val request  = DownloadRequest(
-        url = url,
-        destinationPath = destination,
+
+    val request = DownloadRequest(
+        url = args[0],
+        destinationPath = "C:\\Users\\david\\Documents\\docker-shared\\downloaded-file.txt",
         maxParallelChunks = 10,
-        chunkSizeBytes = 1024 * 1024,
-        onProgress = { progress ->
-            print("\rProgress: ${progress.percentage}% (${progress.downloadedBytes}/${progress.totalBytes} bytes)")
-        }
+        chunkSizeBytes = 1.mb
     )
 
-    val result = fileDownloader.downloadFile(request)
-    if(result.success){
-        println("\n[SUCCESS] Successfully downloaded")
-    }else{
-        println("\n[ERROR] An error occurred, ${result.errorMessage}")
+    val client = OkHttpClientAdapter()
+    val downloader = FileDownloaderImpl(
+        httpClient = client,
+        chunkPlanner = FixedSizeChunkSplitter(),
+        chunkDownloader = ParallelChunkDownloaderImpl(client)
+    )
+
+    downloader.download(request).collect { event ->
+        when (event) {
+            is DownloadEvent.Progress -> {
+                print("\rProgress: ${event.percentage}% (${event.bytesDownloaded}/${event.totalBytes} bytes)")
+            }
+
+            is DownloadEvent.Completed -> {
+                println("\n[SUCCESS] Downloaded ${event.result.fileSize} bytes to ${event.result.filePath} in ${event.result.durationMs}ms")
+            }
+
+            is DownloadEvent.Failed -> {
+                println("\n[ERROR] ${event.result.errorMessage}")
+                exitProcess(1)
+            }
+        }
     }
 }
