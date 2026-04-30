@@ -17,7 +17,10 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("io.mockk:mockk:1.13.10")
+    testImplementation("net.bytebuddy:byte-buddy:1.14.12")
+    testImplementation("io.kotest:kotest-assertions-core:5.8.1")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
 
 application {
@@ -40,5 +43,5 @@ tasks.test {
     useJUnitPlatform()
 }
 kotlin {
-    jvmToolchain(24)
+    jvmToolchain(21)
 }

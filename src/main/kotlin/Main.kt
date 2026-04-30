@@ -13,15 +13,15 @@ import kotlin.system.exitProcess
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 suspend fun main(args: Array<String>) {
-    if (args.isEmpty()) {
-        System.err.println("[ERROR] No arguments found")
-        System.err.println("Example: ./gradlew runDownloader -Pargs=\"http://localhost:8080/test.zip\"")
+    if (args.size < 2) {
+        System.err.println("[ERROR] You must provide 2 arguments.")
+        System.err.println("Example: ./gradlew runDownloader -Pargs=\"http://localhost:8080/test.zip C:\\Users\\david\\Documents\"")
         exitProcess(1)
     }
 
     val request = DownloadRequest(
         url = args[0],
-        destinationPath = "C:\\Users\\david\\Documents\\docker-shared\\downloaded-file.txt",
+        destinationPath = args[1],
         maxParallelChunks = 10,
         chunkSizeBytes = 1.mb
     )
